@@ -18,6 +18,12 @@
 #define function name() view returns (string)
 #define function symbol() view returns (string)
 
+// Events
+#define event Transfer(address,address,address,uint256,uint256,uint256)
+#define event TransferBatch(address,address,address,uint256[],uint256[],uint256[])
+#define event ApprovalForAll(address,address,bool)
+#define event URI(string,string,uint256)
+
 /* Storage Slots */
 #define constant VALUE_LOCATION = FREE_STORAGE_POINTER()
 
