@@ -1,6 +1,22 @@
-/* Interface */
-#define function setValue(uint256) nonpayable returns ()
-#define function getValue() view returns (uint256)
+/// @title DLT
+/// @notice SPDX-License-Identifier: MIT
+/// @author zakrad <https://github.com/zakrad>
+/// @notice Gas efficient Dual Layer Token implementation
+
+
+// Function Interface
+#define function mint(address,uint256,uint256,uint256,bytes) nonpayable returns ()
+#define function burn(address,uint256,uint256,uint256) nonpayable returns ()
+
+#define function isApprovedForAll(address,address) view returns (bool)
+#define function setApprovalForAll(address,bool) nonpayable returns ()
+
+#define function safeTransferFrom(address,address,uint256,uint256,uint256,bytes) nonpayable returns ()
+
+#define function subBalanceOf(address,uint256,uint256) view returns (uint256)
+
+#define function name() view returns (string)
+#define function symbol() view returns (string)
 
 /* Storage Slots */
 #define constant VALUE_LOCATION = FREE_STORAGE_POINTER()
