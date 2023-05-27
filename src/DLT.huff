@@ -3,8 +3,7 @@
 /// @author zakrad <https://github.com/zakrad>
 /// @notice Gas efficient Dual Layer Token implementation
 
-
-// Function Interface
+/* Function Interface */
 #define function mint(address,uint256,uint256,uint256,bytes) nonpayable returns ()
 #define function burn(address,uint256,uint256,uint256) nonpayable returns ()
 
@@ -18,14 +17,79 @@
 #define function name() view returns (string)
 #define function symbol() view returns (string)
 
-// Events
+/* Events */
 #define event Transfer(address,address,address,uint256,uint256,uint256)
 #define event TransferBatch(address,address,address,uint256[],uint256[],uint256[])
+#define event Approval(address,address,uint256,uint256,uint256)
 #define event ApprovalForAll(address,address,bool)
 #define event URI(string,string,uint256)
 
 /* Storage Slots */
-#define constant VALUE_LOCATION = FREE_STORAGE_POINTER()
+#define constant NAME_LOCATION = FREE_STORAGE_POINTER()
+#define constant SYMBOL_LOCATION = FREE_STORAGE_POINTER()
+#define constant SUB_BALANCE_LOCATION = FREE_STORAGE_POINTER()
+#define constant IS_APPROVED_FOR_ALL_LOCATION = FREE_STORAGE_POINTER()
+#define constant ALLOWANCE_LOCATION = FREE_STORAGE_POINTER()
+
+/* Metadata */
+// META_NAME = "DualLayerToken"
+#define constant META_NAME = 0x4475616c4c61796572546f6b656e000000000000000000000000000000000000
+#define constant META_NAME_LENGTH = 0x0e
+
+// META_SYMBOL = "DLT"
+#define constant META_SYMBOL = 0x444c540000000000000000000000000000000000000000000000000000000000
+#define constant META_SYMBOL_LENGTH = 0x03
+
+/// @title Sub Balance Of
+/// @notice Entry point for: subBalanceOf(address,uint256,uint256)
+/// @dev Slices account and address from calldata and retreives the balance
+/// @param {calldata} [address account, uint256 mainId, uint256 subId]
+/// @return {return} [uint256 subBalance]
+#define macro SUB_BALANCE_OF() = takes (0) returns(0) {
+    0x44 calldataload                               // [subId]
+    0x24 calldataload                               // [mainId, subId]
+    0x04 calldataload                               // [account, mainid, subId]
+
+    GET_SUB_BALANCE_SLOT(0x00)                      // [slot]
+    sload                                           // [balance]
+    0x00 mstore                                     // [] load into mem
+    0x20 0x00 return                                // [] return 32 bytes
+}
+
+// Helper Macros
+// NOTE: Execution flow does not need to stop at the end of these macros
+
+/// @title Get Sub Balance Of
+/// @notice Get the balance of a token sub id for a given main id and account.
+/// @dev Uses a 2 level nested mapping for getting values 
+/// @param {stack} [account, mainId, subId]
+/// @return {stack} [balance]
+#define macro GET_SUB_BALANCE_SLOT(mem_ptr) = takes (3) returns (1) {
+    // input stack: [account, mainId, subId]
+    [SUB_BALANCE_LOCATION]            // [SUB_BALANCE_LOCATION, account, mainId, subId]
+    <mem_ptr> 0x20 add                // [<mem_ptr> + 32, SUB_BALANCE_LOCATION, account, mainId, subId]
+    mstore                            // [account, mainId, subId]
+    <mem_ptr> swap1 dup2              // [<mem_ptr>, account, <mem_ptr>, mainId, subId]
+    mstore                            // [<mem_ptr>, mainId, subId]
+    0x40 dup2                         // [<mem_ptr>, 0x40, <mem_ptr>, mainId, subId]
+    sha3                              // [slot1, <mem_ptr>, mainId, subId]
+
+    //concat mainId
+    dup2 0x20 add                     // [<mem_ptr> +32, slot1, <mem_ptr>, mainId, subId]
+    mstore                            // [<mem_ptr>, mainId, subId]
+    swap1 dup2                        // [<mem_ptr>, mainId, <mem_ptr>, subId]
+    mstore                            // [<mem_ptr>, subId]
+    0x40 dup2                         // [<mem_ptr>, 0x40, <mem_ptr>, subId] 
+    sha3                              // [slot2, <mem_ptr>, subId] 
+
+    //concat subId
+    dup2 0x20 add                     // [<mem_ptr> +32, slot2, <mem_ptr>, subId]
+    mstore                            // [<mem_ptr>, subId]
+    swap1 dup2                        // [<mem_ptr>, subId, <mem_ptr>]
+    mstore                            // [<mem_ptr>]
+    0x40 swap1                        // [<mem_ptr>, 0x40]
+    sha3                              // [slot3] 
+}
 
 /* Methods */
 #define macro SET_VALUE() = takes (0) returns (0) {
