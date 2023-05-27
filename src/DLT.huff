@@ -39,6 +39,10 @@
 // Solidity Panic Codes
 #define constant ARITHMETIC_OVERFLOW = 0x11;
 
+// "NON_PAYABLE" Revert Message String
+#define constant NON_PAYABLE_ERROR = 0x4e4f4e5f50415941424c45000000000000000000000000000000000000000000
+#define constant NON_PAYABLE_LENGTH = 0x0b
+
 /* Metadata */
 // META_NAME = "DualLayerToken"
 #define constant META_NAME = 0x4475616c4c61796572546f6b656e000000000000000000000000000000000000
@@ -48,12 +52,15 @@
 #define constant META_SYMBOL = 0x444c540000000000000000000000000000000000000000000000000000000000
 #define constant META_SYMBOL_LENGTH = 0x03
 
+// Viewable Function Macros
+
 /// @title Sub Balance Of
 /// @notice Entry point for: subBalanceOf(address,uint256,uint256)
 /// @dev Slices account and address from calldata and retreives the balance
 /// @param {calldata} [address account, uint256 mainId, uint256 subId]
 /// @return {return} [uint256 subBalance]
 #define macro SUB_BALANCE_OF() = takes (0) returns(0) {
+    NON_PAYABLE()
     0x44 calldataload                               // [subId]
     0x24 calldataload                               // [mainId, subId]
     0x04 calldataload                               // [account, mainid, subId]
@@ -62,6 +69,30 @@
     sload                                           // [balance]
     0x00 mstore                                     // [] load into mem
     0x20 0x00 return                                // [] return 32 bytes
+}
+
+/// @title Name
+/// @notice Returns the name of the contract
+/// @param []
+/// @return {return} [string]
+#define macro NAME() = takes (0) returns (0) {
+    NON_PAYABLE()
+    0x20 0x00 mstore                    // []
+    [META_NAME_LENGTH] 0x20 mstore      // []
+    [META_NAME] 0x40 mstore             // []
+    0x60 0x00 return                    // []
+}
+
+/// @title Symbol
+/// @notice Gets the symbol of the contract
+/// @param []
+/// @return {return} [string]
+#define macro SYMBOL() = takes (0) returns (0) {
+    NON_PAYABLE()                       // []
+    0x20 0x00 mstore                    // []
+    [META_SYMBOL_LENGTH] 0x20 mstore    // []
+    [META_SYMBOL] 0x40 mstore           // []
+    0x60 0x00 return                    // []
 }
 
 
@@ -105,7 +136,7 @@
 /// @notice Decreases the balance by amount of a given account for the given mianId and subId
 /// @param {stack} [address from, uint256 mainId, uint256 subId, uint256 amount]
 /// @return []
-#define macro DECREASE_BALANCE() = takes (3) returns (0) {
+#define macro DECREASE_BALANCE() = takes (4) returns (0) {
     // takes 3 [from, mainId, subId, amount]
 
     GET_SUB_BALANCE_SLOT(0x00)      // [slot, amount]
@@ -155,6 +186,46 @@ MEMORY LAYOUT WHEN THROWN
     0x24            // [revert_size]
     0x00            // [revert_offset, revert_size]
     revert          // []
+}
+
+/*
+
+Solidity Require. Error `string` MUST be no greater than 32 bytes.
+
+MEMORY LAYOUT WHEN THROWN
+| sig    || message offset                                                 || message length                                                 || message "revert"                                               |
+0x08c379a  0000000000000000000000000000000000000000000000000000000000000020  0000000000000000000000000000000000000000000000000000000000000006  7265766572740000000000000000000000000000000000000000000000000000
+
+*/
+#define macro REQUIRE() = takes (3) returns (0) {
+    // takes:       // [condition, message_length, message]
+    do_not_throw    // [do_not_throw_jumpdest, condition, message_length, message]
+    jumpi           // [message_length, message]
+    __ERROR(Error)  // [error_sig, , message_length, message]
+    0x00            // [mem_ptr, error_sig, message_length, message]
+    mstore          // [message_length, message]
+    0x20            // [message_offset, message_length, message]
+    0x04            // [message_offset_ptr, message_offset, message_length, message]
+    mstore          // [message_length, message]
+    0x24            // [message_length_ptr, message_length, message]
+    mstore          // [message]
+    0x44            // [message_ptr, message]
+    mstore          // []
+    0x80            // [size]
+    0x00            // [offset, size]
+    revert          // []
+    do_not_throw:   // [message_length, message]
+        pop         // [message]
+        pop         // []
+}
+
+/// @notice Reverts if the call has a non-zero value
+/// @notice Reverts with message "NON_PAYABLE"
+#define macro NON_PAYABLE() = takes (0) returns (0) {
+    [NON_PAYABLE_ERROR]      // ["NON_PAYABLE"]
+    [NON_PAYABLE_LENGTH]     // [11 (length), "NON_PAYABLE"]
+    callvalue iszero         // [msg.value == 0, 11 (length), "NON_PAYABLE"]
+    REQUIRE()                // []
 }
 
 
