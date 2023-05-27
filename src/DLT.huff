@@ -95,6 +95,22 @@
     0x60 0x00 return                    // []
 }
 
+/// @title Is Approved For All
+/// @notice Getter method for approval mapping
+/// @param {calldata} [address owner, address operator]
+/// @return {approved} [bool]
+#define macro IS_APPROVED_FOR_ALL() = takes (0) returns (0) {
+    0x24 calldataload                 // [operator]
+    0x04 calldataload                 // [owner, operator]
+
+    GET_APPROVAL_FOR_ALL_SLOT(0x00)    // [slot]
+
+    sload                              //[value]
+
+    0x00 mstore
+    0x20 0x00 return
+}
+
 
 // External State Modifying Macro Functions
 
@@ -127,30 +143,6 @@
     // Stop the execution flow
     stop
 }
-
-/// @notice Get slot for set approval for all
-#define macro GET_APPROVAL_FOR_ALL_SLOT(mem_ptr) = takes(2) returns (1) {
-    // Input stack: [key1, key2]
-    [IS_APPROVED_FOR_ALL_LOCATION]      // [slot, msg.sender, operator]
-    <mem_ptr> 0x20 add           // [<mem_ptr> + 32, slot, msg.sender, operator]
-    mstore                      // [msg.sender, operator] 
-    <mem_ptr> swap1 dup2        // [<mem_ptr>, msg.sender, <mem_ptr>, operator] 
-    mstore
-
-    dup1                        // [<mem_ptr>, <mem_ptr>, operator]
-    0x40 swap1                  // [<mem_ptr>, 0x40, <mem_ptr>, operator]
-    sha3                        // [slot, <mem_ptr>, operator]
-
-    dup2 0x20 add               // [<mem_ptr> + 32, slot, <mem_ptr>, operator]
-    mstore 
-    swap1 dup2                   // [<mem_ptr>, operator, <mem_ptr>]
-    mstore                       // [<mem_ptr>]
-
-    0x40 swap1                   // [<mem_ptr>, 0x40]
-    sha3                         // [slot]
-
-}
-
 
 
 // Helper Macros
@@ -186,6 +178,30 @@
     mstore                            // [<mem_ptr>]
     0x40 swap1                        // [<mem_ptr>, 0x40]
     sha3                              // [slot3] 
+}
+
+
+/// @notice Get slot for set approval for all
+#define macro GET_APPROVAL_FOR_ALL_SLOT(mem_ptr) = takes(2) returns (1) {
+    // Input stack: [key1, key2]
+    [IS_APPROVED_FOR_ALL_LOCATION]      // [slot, msg.sender, operator]
+    <mem_ptr> 0x20 add           // [<mem_ptr> + 32, slot, msg.sender, operator]
+    mstore                      // [msg.sender, operator] 
+    <mem_ptr> swap1 dup2        // [<mem_ptr>, msg.sender, <mem_ptr>, operator] 
+    mstore
+
+    dup1                        // [<mem_ptr>, <mem_ptr>, operator]
+    0x40 swap1                  // [<mem_ptr>, 0x40, <mem_ptr>, operator]
+    sha3                        // [slot, <mem_ptr>, operator]
+
+    dup2 0x20 add               // [<mem_ptr> + 32, slot, <mem_ptr>, operator]
+    mstore 
+    swap1 dup2                   // [<mem_ptr>, operator, <mem_ptr>]
+    mstore                       // [<mem_ptr>]
+
+    0x40 swap1                   // [<mem_ptr>, 0x40]
+    sha3                         // [slot]
+
 }
 
 /// @title Decrease Sub Id Balance
