@@ -3,6 +3,11 @@
 /// @author zakrad <https://github.com/zakrad>
 /// @notice Gas efficient Dual Layer Token implementation
 
+// Errors
+#define error Error(string)
+#define error Panic(uint256)
+
+
 /* Function Interface */
 #define function mint(address,uint256,uint256,uint256,bytes) nonpayable returns ()
 #define function burn(address,uint256,uint256,uint256) nonpayable returns ()
@@ -30,6 +35,9 @@
 #define constant SUB_BALANCE_LOCATION = FREE_STORAGE_POINTER()
 #define constant IS_APPROVED_FOR_ALL_LOCATION = FREE_STORAGE_POINTER()
 #define constant ALLOWANCE_LOCATION = FREE_STORAGE_POINTER()
+// Constants
+// Solidity Panic Codes
+#define constant ARITHMETIC_OVERFLOW = 0x11;
 
 /* Metadata */
 // META_NAME = "DualLayerToken"
@@ -55,6 +63,8 @@
     0x00 mstore                                     // [] load into mem
     0x20 0x00 return                                // [] return 32 bytes
 }
+
+
 
 // Helper Macros
 // NOTE: Execution flow does not need to stop at the end of these macros
@@ -90,6 +100,63 @@
     0x40 swap1                        // [<mem_ptr>, 0x40]
     sha3                              // [slot3] 
 }
+
+/// @title Decrease Sub Id Balance
+/// @notice Decreases the balance by amount of a given account for the given mianId and subId
+/// @param {stack} [address from, uint256 mainId, uint256 subId, uint256 amount]
+/// @return []
+#define macro DECREASE_BALANCE() = takes (3) returns (0) {
+    // takes 3 [from, mainId, subId, amount]
+
+    GET_SUB_BALANCE_SLOT(0x00)      // [slot, amount]
+    dup1                            // [slot,slot,amount]
+    sload                           // [bal, slot, amount]
+    swap1                           // [slot, bal, amount]
+    swap2                           // [amount, bal, slot]
+    swap1                           // [bal, amount, slot]
+
+    // Safe sub balance to revert on underflow
+    SAFE_SUB()                      // [(bal-amount), slot]
+
+    // Store decreased balance
+    swap1                           // [slot, (bal-amount)]
+    sstore                          // []
+}
+
+/// @notice Subtracts two numbers and reverts on underflow
+#define macro SAFE_SUB() = takes (2) returns (1) {
+    // input stack          // [num1, num2]
+    dup1                    // [num1, num1, num2]
+    dup3                    // [num2, num1, num1, num2]
+    gt                      // [is_underflow, num1, num2]
+    iszero                  // [is_not_underflow, num1, num2]
+    is_not_underflow jumpi  // [num1, num2]
+        [ARITHMETIC_OVERFLOW] PANIC()
+    is_not_underflow:       // [num1, num2]
+    sub                     // [result]
+}
+
+/*
+
+Solidity Panic.
+
+MEMORY LAYOUT WHEN THROWN
+| sig     || panic code                                                     |
+0x4e487b71  0000000000000000000000000000000000000000000000000000000000000001
+
+*/
+#define macro PANIC() = takes (1) returns (0) {
+    // takes:       // [panic_code]
+    __ERROR(Panic)  // [panic_sig, panic_code]
+    0x00            // [panic_sig_offset, panic_sig, panic_code]
+    mstore          // [panic_code]
+    0x04            // [panic_code_offset, panic_code]
+    mstore          // []
+    0x24            // [revert_size]
+    0x00            // [revert_offset, revert_size]
+    revert          // []
+}
+
 
 /* Methods */
 #define macro SET_VALUE() = takes (0) returns (0) {
