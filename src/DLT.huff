@@ -226,6 +226,56 @@
     stop
 }
 
+/// @title Safe Transfer From
+/// @dev Performs safe transfer hook within the SAFE_CALL macro
+/// @param {calldata} [address from, address to, uint256 mainId, uint256 subId, uint256 amount, bytes data]
+/// @return []
+#define macro SAFE_TRANSFER_FROM() = takes (0) returns (0) {
+    0x04 calldataload               // [from]
+    IS_OWNER_OR_APPROVED(error)     // []
+
+    // Place calldata args onto the stack
+    0x84 calldataload               // [amount]
+    0x64 calldataload               // [subId, amount]
+    0x44 calldataload               // [mainId, subId, amount]
+    dup3 dup1                       // [amount, amount, mainId, subId, amount]
+    dup4 dup4                       // [mainId, subId, amount, amount, mainId, subId, amount]
+    0x04 calldataload               // [from, mainId, subId, amount, amount, mainId, subId, amount]
+
+    // Decrease the balance of the from account
+    // takes: [from, mainId, subId, amount]
+    DECREASE_BALANCE()              // [amount, mainId, subId, amount]
+
+    dup3 dup3                       // [mainId, subId, amount, mainId, subId, amount]
+    0x24 calldataload               // [to, mainId, subId, amount, mainId, subId, amount]
+
+    // Increase the balance of the to account
+    // takes: [to, tokenId, amount]
+    INCREASE_BALANCE()              // [mainId, subId, amount]
+
+    // Emit transfer log
+    0x00 mstore                     // store mainId and subId in memory for log can store in 0x00 as scratch space is no longer in use
+    0x20 mstore                     // store amount in memory for log
+    0x40 mstore                     // store amount in memory for log
+
+    0x24 calldataload               // [to]
+    0x04 calldataload               // [from, to]
+    dup2 dup2                       // [from, to, from, to]
+    caller                          // [msg.sender, from, to, from, to]
+    __EVENT_HASH(Transfer)          // [sig, msg.sender, from, to, from, to]
+    0x00 0x60                       // [from, to] log data
+    log4                            // [from, to]
+
+    // &ids is stored on the stack as it is used to calculate the size of the calldata to be sent in SAFE_CALL to a receiving contract
+    0x24 swap2                      // [to, from, &ids]
+
+    // takes: [to, from, &ids]
+    SAFE_CALL()
+
+    error:
+        UNAUTHORIZED(0x00)
+}
+
 
 
 
@@ -404,7 +454,7 @@
         dup8                            // [to, value, argOffset, argSize, retOffset, retSize, selector, cds, to, from, &ids]         to: to                     // send to the to address
         gas                             // [gas, to, value, argOffset, argSize, retOffset, retSize, selector, cds, to, from, &ids]    gas: gas                   // forward all gas    
 
-        call                            // [success, selector, cds, to, from, &ids]                                                   call
+        call                  // [success, selector, cds, to, from, &ids]                                                   call
 
         // error if call reverts
         iszero error jumpi
@@ -450,6 +500,28 @@
         [ARITHMETIC_OVERFLOW] PANIC()
     is_not_underflow:       // [num1, num2]
     sub                     // [result]
+}
+
+
+/// @title Is Owner Or Approved
+/// @notice Checks if the msg sender is the owner or is approved for the given mainId and subId
+/// @dev Used within SAFE_TRANSFER_FROM
+/// @param {calldata} [address from]
+/// @param {argument} [(jump_label) error]
+/// @return []
+#define macro IS_OWNER_OR_APPROVED(error) = takes (1) returns (0) {
+    // takes: [from]
+    caller swap1                       // [from, msg.sender]
+    dup2 dup2                          // [from, msg.sender, from, msg.sender]
+    eq continue jumpi                  // [from, msg.sender]
+
+    GET_APPROVAL_FOR_ALL_SLOT(0x00)    // [slot]
+
+    sload                              //[value]
+
+    iszero <error> jumpi               // []
+
+    continue:
 }
 
 /*
@@ -518,6 +590,14 @@ MEMORY LAYOUT WHEN THROWN
     [UNSAFE_RECIPIENT_ERROR]    // ["UNSAFE_RECIPIENT"]
     [UNSAFE_RECIPIENT_LENGTH]   // [16 (length), "UNSAFE_RECIPIENT"]
     <condition>                 // [condition, 16 (length), "UNSAFE_RECIPIENT"]
+    REQUIRE()                   // []
+}
+
+/// @notice Reverts with an "NOT_AUTHORIZED" message if the condition is false
+#define macro UNAUTHORIZED(condition) = takes (0) returns (0) {
+    [NOT_AUTHORIZED_ERROR]      // ["NOT_AUTHORIZED"]
+    [NOT_AUTHORIZED_LENGTH]     // [14 (length), "NOT_AUTHORIZED"]
+    <condition>                 // [condition, 14 (length), "NOT_AUTHORIZED"]
     REQUIRE()                   // []
 }
 
