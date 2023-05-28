@@ -144,6 +144,54 @@
     stop
 }
 
+/// @title Mint
+/// @notice Mint sub id balance to the given account
+/// @notice This method does NOT check for any paid ether or remaining supply
+/// @notice Increase the balance of the msg.sender for the given mainId, subId and amount.
+/// @param {calldata} [uint256 account, uint256 mainId, uint256 subId, uint256 amount, bytes data]
+/// @return []
+#define macro MINT() = takes (0) returns (0) {
+    // increase the balance of the address
+    0x64 calldataload               // [amount]
+
+    // store for log
+    dup1 0x80 mstore                // [amount]
+
+    0x44 calldataload               // [subId, amount]
+
+    // store for log
+    dup1 0x60 mstore                // [subId, amount]
+
+    0x24 calldataload               // [mainId, subId, amount]
+
+    // store for log
+    dup1 0x40 mstore                // [mainId, subId, amount]
+
+    0x04 calldataload               // [to, mainId, subId, amount]
+
+    // Increase the balance of the to account
+    // takes: [to, tokenId, amount]
+    INCREASE_BALANCE(0x00)
+
+    // emit transfer event
+    0x04 calldataload dup1          // [to]
+    0x00                            // [zero_address, to, to]
+    caller                          // [msg.sender, zero_address, to, to]
+
+    __EVENT_HASH(TransferSingle)    // [sig, msg.sender, zero_address, to, to]
+
+    0x40 0x40                       // [offset, size, TransferSingle, msg.sender, address(0), to, to]
+    log4                            // [to]
+
+    0x00                            // [from, to]
+    0x04                            // [&ids, from, to]
+    swap2
+
+    // [to, from, &ids]
+    SAFE_CALL()
+}
+
+
 
 // Helper Macros
 // NOTE: Execution flow does not need to stop at the end of these macros
@@ -224,6 +272,136 @@
     // Store decreased balance
     swap1                           // [slot, (bal-amount)]
     sstore                          // []
+}
+
+/// @title Increase Balance
+/// @notice Increases the balance by amount of a given account for the given tokenId
+/// @param {stack} [address from, uint256 tokenId, uint256 amount]
+/// @return []
+#define macro INCREASE_BALANCE() = takes (4) returns (0) {
+    // input stack: [to, mainId, subId, amount]
+
+    GET_SUB_BALANCE_SLOT(0x00)     // [slot, amount]
+    dup1                            // [slot, slot,amount]
+    sload                           // [bal, slot, amount]
+    swap1                           // [slot, bal, amount]
+    swap2                           // [amount, bal, slot]
+
+    // Safe sub balance to revert on overflow
+    SAFE_ADD()                      // [(bal+amount), slot]
+
+    // Store decreased balance
+    swap1                           // [slot, (bal+amount)]
+    sstore                          // []
+}
+
+/// @title Safe Call
+/// @notice Performs safe call hook for functions that are transfering single asserts (i.e. not batch transfers)
+/// @dev Copies calldata into a buffer for to forward to the receivinf contract - panics if selector is not returned
+/// @dev If the sender is an EOA this is skipped
+/// @param {stack} [address to, address from, uint256 &ids]
+/// @return []
+#define macro SAFE_CALL() = takes (3) returns (0) {
+    // input stack: [to, from, &ids]
+
+    // safe transfer if the contract to has code
+
+    dup1                            // [to, to, from, &ids]
+    extcodesize                     // [codesize(to), to, to, from, &ids]
+    iszero                          // [!(codesize(to)), to, to, from, &ids]
+    iszero                          // [!!(codesize(to)), to, to, from, &ids]
+
+    // Jump to do safe check if the caller is a contract
+    isContract                      // jump is sender
+    jumpi                           // [to, to, from, &ids]
+
+    // check for zero address, if sent to the zero address revert, otherwise fin
+    iszero                          // [!to, to, from, &ids]
+    unsafe jumpi                    // [to, from, &ids]
+    continue jump                   // [to, from, &ids]
+
+    isContract:
+        // make external call to contract
+        // get data
+
+        // get value
+        calldatasize                    // [cds, to, from, &ids]
+
+        0xf23a6e61 0xE0 shl             // [selector, cds, to, from, &ids]
+        dup1 0x20 mstore                // [selector, cds, to, from, &ids]
+
+        dup5 dup3 sub                   // [(cds-4), selector, cds, to, from, &ids]
+        dup6                            // [0x04, (cds-4), selector, cds, to, from, &ids]
+        0x44                            // [0x44, 0x04, (cds-4), selector, cds, to, from, &ids]
+        calldatacopy                    // [selector, cds, to, from, &ids]
+
+        // store caller in first calldata slot
+        caller 0x24 mstore              // [selector, cds, to, from, &ids]
+
+        // store from, in the second
+        dup4 0x44 mstore                // [selector, cds, to, from, &ids]]
+
+        // This macro is used for both safeMint and for safeTransferFrom, the following section is only required when calling from mint, as and extra address
+        // parameter is needed when calling the onReceive function on the receiving contract, as safeTransferFrom already has an extra address parameter no 
+        // resizing of dynamic data pointers are required.
+        // We can check if this is coming from mint or safeTransferFrom by checking if the from value on the stack is the zero address or not
+        dup4 iszero iszero skipResize jumpi
+
+        // update location of the bytes calldata
+        0xa0 0xa4 mstore
+
+        // increase calldatasize value by 0x20, when minting
+        swap1                           // [cds, selector, to, from, &ids]
+        0x20 add                        // [cds+0x20, selector, to, from, &ids]
+        swap1                           // [selector, cds+0x20, to, from, &ids]
+
+    skipResize:
+        // using scratch space as return data space as we know it will NOT be used.
+        // clear return space in preparation for the call
+        0x00 dup1 mstore                // [selector, cds, to, from, &ids]
+
+        // call
+        0x20                            // [retSize, selector, cds, to, from, &ids]                                                   retSize: 0x04
+        0x00                            // [retOffset, retSize, selector, cds, to, from, &ids]                                        retOffset: 0x00
+        dup4                            // [argSize, retOffset, retSize, selector, cds, to, from, &ids]                               argSize: calldatasize + 20 // we add one more address into the mix    
+        0x20                            // [argOffset, argSize, retOffset, retSize, selector, cds, to, from, &ids]                    argOffset: 0x20            // read the args from 0x20
+        0x00                            // [value, argOffset, argSize, retOffset, retSize, selector, cds, to, from, &ids]             value: 0x00                // send no ether
+        dup8                            // [to, value, argOffset, argSize, retOffset, retSize, selector, cds, to, from, &ids]         to: to                     // send to the to address
+        gas                             // [gas, to, value, argOffset, argSize, retOffset, retSize, selector, cds, to, from, &ids]    gas: gas                   // forward all gas    
+
+        call                            // [success, selector, cds, to, from, &ids]                                                   call
+
+        // error if call reverts
+        iszero error jumpi
+
+        // read response
+        0x00 mload 0xE0 shr             // [response]
+        0xf23a6e61                      // [selector, response]
+        eq iszero unsafe jumpi          // If the selector and the response are not equal, error
+
+    continue:
+        stop                            // execution completed successfully
+
+    unsafe:
+        UNSAFE_RECIPIENT(0x00)
+
+    error:
+        0x00 dup1 revert
+}
+
+
+/// @notice Adds two numbers and reverts on overflow
+#define macro SAFE_ADD() = takes (2) returns (1) {
+    // input stack          // [num1, num2]
+    dup2                    // [num2, num1, num2]
+    add                     // [result, num2]
+    dup1                    // [result, result, num2]
+    swap2                   // [num2, result, result]
+    gt                      // [is_overflow, result]
+    iszero                  // [is_not_overflow, result]
+    is_not_overflow jumpi   // [result]
+        [ARITHMETIC_OVERFLOW] PANIC()
+    is_not_overflow:        // [result]
 }
 
 /// @notice Subtracts two numbers and reverts on underflow
