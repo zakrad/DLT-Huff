@@ -198,6 +198,35 @@
     SAFE_CALL()
 }
 
+/// @title Burn
+/// @notice Decreases the balance of a given account by the given mainId, subId and amount.
+/// @notice This function is NOT protected in this contract - be sure to protect accordingly in production.
+/// @param {calldata} [address from, uint256 mainId, , uint256 subId, uint256 amount]
+/// @return []
+#define macro BURN() = takes(0) returns(0) {
+    0x64 calldataload               // [amount]
+    0x44 calldataload               // [subId, amount]
+    0x24 calldataload               // [mainId, , subId, amount]
+    dup3 dup3 dup3                  // [mainId, subId, amount, mainId, subId, amount]
+    0x04 calldataload               // [from, mainId, subId, amount, mainId, subId, amount]
+    DECREASE_BALANCE()              // [mainId, subId, amount]
+
+    // Emit transfer log
+    0x00 mstore                     // store mainId in memory for log
+    0x20 mstore                     // store subId in memory for log
+    0x40 mstore                     // store amount in memory for log
+
+    0x00                            // [zero_address]
+    0x04 calldataload               // [from, zero_address]
+    caller                          // [msg.sender, from,zero_address]
+    __EVENT_HASH(Transfer)          // [sig, msg.sender, from, zero_address]
+    0x00 0x60                       // log data
+    log4
+
+    stop
+}
+
+
 
 
 // Helper Macros
