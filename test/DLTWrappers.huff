@@ -1,0 +1,44 @@
+#define macro CONSTRUCTOR() = takes (0) returns (0) {
+    DLT_CONSTRUCTOR()
+}
+
+#define macro MAIN() = {
+    0x00 calldataload 0xE0 shr      // [function selector on stack]
+
+    dup1 __FUNC_SIG(mint) eq mint jumpi
+    dup1 __FUNC_SIG(burn) eq burn jumpi
+
+    dup1 __FUNC_SIG(safeTransferFrom) eq safeTransferFrom jumpi
+
+    dup1 __FUNC_SIG(isApprovedForAll) eq isApprovedForAll jumpi
+    dup1 __FUNC_SIG(setApprovalForAll) eq setApprovalForAll jumpi
+
+    dup1 __FUNC_SIG(subBalanceOf) eq subBalanceOf jumpi
+
+    dup1 __FUNC_SIG(name) eq name jumpi
+    dup1 __FUNC_SIG(symbol) eq symbol jumpi
+
+    // No fallback function
+    0x00 dup1 revert
+
+    mint:
+        MINT()
+    burn:
+        BURN()
+
+    safeTransferFrom:
+        SAFE_TRANSFER_FROM()
+
+    isApprovedForAll:
+        IS_APPROVED_FOR_ALL()
+    setApprovalForAll:
+        SET_APPROVAL_FOR_ALL()
+
+    subBalanceOf:
+        SUB_BALANCE_OF()
+
+    name:
+        NAME()
+    symbol:
+        SYMBOL()
+}
