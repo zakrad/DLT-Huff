@@ -158,6 +158,16 @@ contract DLTTest is Test {
         dlt.burn(address(0xBEEF), 1, 2, 61);
     }
 
+    function testFailSafeTransferFromInsufficientBalance() public {
+        address from = address(0xABCD);
+
+        dlt.mint(from, 1, 2, 70, "");
+
+        vm.prank(from);
+        dlt.setApprovalForAll(address(this), true);
+
+        dlt.safeTransferFrom(from, address(0xBEEF), 1, 2, 71, "");
+    }
 }
 
 interface DLT {
