@@ -78,6 +78,15 @@ contract DLTTest is Test {
         assertEq(to.subId(), 2);
         assertEq(to.data(), "data");
     }
+
+    function testBurn() public {
+        dlt.mint(address(0xBEEF), 1, 1, 10, "");
+
+        dlt.burn(address(0xBEEF), 1, 1, 6);
+
+        assertEq(dlt.subBalanceOf(address(0xBEEF), 1, 1), 4);
+    }
+
 }
 
 interface DLT {
