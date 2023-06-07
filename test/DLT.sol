@@ -87,6 +87,11 @@ contract DLTTest is Test {
         assertEq(dlt.subBalanceOf(address(0xBEEF), 1, 1), 4);
     }
 
+    function testApproveAll() public {
+        dlt.setApprovalForAll(address(0xBEEF), true);
+        assertTrue(dlt.isApprovedForAll(address(this), address(0xBEEF)));
+    }
+
 }
 
 interface DLT {
