@@ -137,6 +137,27 @@ contract DLTTest is Test {
         assertEq(dlt.subBalanceOf(address(this), 1, 2), 4);
     }
 
+    function testFailMintToZero() public {
+        dlt.mint(address(0), 1, 2, 10, "");
+    }
+
+    function testFailMintToNonDLTRecipient() public {
+        dlt.mint(address(new NonDLTRecipient()), 1, 2, 10, "");
+    }
+
+    function testFailMintToRevertingDLTRecipient() public {
+        dlt.mint(address(new RevertingDLTRecipient()), 1, 2, 10, "");
+    }
+
+    function testFailMintToWrongReturnDataDLTRecipient() public {
+        dlt.mint(address(new RevertingDLTRecipient()), 1, 2, 10, "");
+    }
+
+    function testFailBurnInsufficientBalance() public {
+        dlt.mint(address(0xBEEF), 1, 2, 60, "");
+        dlt.burn(address(0xBEEF), 1, 2, 61);
+    }
+
 }
 
 interface DLT {
