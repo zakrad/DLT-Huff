@@ -6,7 +6,11 @@ import "forge-std/Test.sol";
 import "forge-std/console.sol";
 
 abstract contract DLTReceiver {
-    function onDLTReceived(address, address, uint256, uint256, uint256, bytes calldata) external virtual returns (bytes4) {
+    function onDLTReceived(address, address, uint256, uint256, uint256, bytes calldata)
+        external
+        virtual
+        returns (bytes4)
+    {
         return DLTReceiver.onDLTReceived.selector;
     }
 }
@@ -38,9 +42,31 @@ contract DLTRecipient is DLTReceiver {
     }
 }
 
+contract RevertingDLTRecipient is DLTReceiver {
+    function onDLTReceived(address, address, uint256, uint256, uint256, bytes calldata)
+        public
+        pure
+        override
+        returns (bytes4)
+    {
+        revert(string(abi.encodePacked(DLTReceiver.onDLTReceived.selector)));
+    }
+}
+
+contract WrongReturnDataDLTRecipient is DLTReceiver {
+    function onDLTReceived(address, address, uint256, uint256, uint256, bytes calldata)
+        public
+        pure
+        override
+        returns (bytes4)
+    {
+        return 0xCAFEBEEF;
+    }
+}
+
 contract NonDLTRecipient {}
 
-contract DLTTest is Test {
+contract DLTTest is Test, DLTRecipient {
     /// @dev Address of the DLT contract.
     DLT public dlt;
 
@@ -167,6 +193,31 @@ contract DLTTest is Test {
         dlt.setApprovalForAll(address(this), true);
 
         dlt.safeTransferFrom(from, address(0xBEEF), 1, 2, 71, "");
+    }
+
+    function testFailSafeTransferFromSelfInsufficientBalance() public {
+        dlt.mint(address(this), 1, 2, 70, "");
+        dlt.safeTransferFrom(address(this), address(0xBEEF), 1, 2, 71, "");
+    }
+
+    function testFailSafeTransferFromToZero() public {
+        dlt.mint(address(this), 1, 2, 100, "");
+        dlt.safeTransferFrom(address(this), address(0), 1, 2, 70, "");
+    }
+
+    function testFailSafeTransferFromToNonDLTRecipient() public {
+        dlt.mint(address(this), 1, 2, 100, "");
+        dlt.safeTransferFrom(address(this), address(new NonDLTRecipient()), 1, 2, 70, "");
+    }
+
+    function testFailSafeTransferFromToRevertingDLTRecipient() public {
+        dlt.mint(address(this), 1, 2, 100, "");
+        dlt.safeTransferFrom(address(this), address(new RevertingDLTRecipient()), 1, 2, 60, "");
+    }
+
+    function testFailSafeTransferFromToWrongReturnDataDLTRecipient() public {
+        dlt.mint(address(this), 1, 2, 100, "");
+        dlt.safeTransferFrom(address(this), address(new WrongReturnDataDLTRecipient()), 1, 2, 70, "");
     }
 }
 
