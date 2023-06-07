@@ -92,6 +92,19 @@ contract DLTTest is Test {
         assertTrue(dlt.isApprovedForAll(address(this), address(0xBEEF)));
     }
 
+    function testSafeTransferFromToEOA() public {
+        address from = address(0xABCD);
+
+        dlt.mint(from, 1, 1, 10, "");
+
+        vm.prank(from);
+        dlt.setApprovalForAll(address(this), true);
+
+        dlt.safeTransferFrom(from, address(0xBEEF), 1, 1, 6, "");
+
+        assertEq(dlt.subBalanceOf(address(0xBEEF), 1, 1), 6);
+        assertEq(dlt.subBalanceOf(from, 1, 1), 4);
+    }
 }
 
 interface DLT {
