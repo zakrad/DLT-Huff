@@ -127,6 +127,16 @@ contract DLTTest is Test {
         assertEq(dlt.subBalanceOf(address(to), 1, 2), 6);
         assertEq(dlt.subBalanceOf(from, 1, 2), 4);
     }
+
+    function testSafeTransferFromSelf() public {
+        dlt.mint(address(this), 1, 2, 10, "");
+
+        dlt.safeTransferFrom(address(this), address(0xBEEF), 1, 2, 6, "");
+
+        assertEq(dlt.subBalanceOf(address(0xBEEF), 1, 2), 6);
+        assertEq(dlt.subBalanceOf(address(this), 1, 2), 4);
+    }
+
 }
 
 interface DLT {
