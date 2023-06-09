@@ -2,14 +2,14 @@
 
 # Dual Layer Token (ERC6960) in Huff • [![ci](https://github.com/huff-language/huff-project-template/actions/workflows/ci.yaml/badge.svg)](https://github.com/huff-language/huff-project-template/actions/workflows/ci.yaml) ![license](https://img.shields.io/github/license/huff-language/huff-project-template.svg) ![solidity](https://img.shields.io/badge/solidity-^0.8.15-lightgrey)
 
-Welcome to the Dual-Layer-Token (DLT) Standard, proposed under EIP-6960! 🎉
+Welcome to the Dual-Layer-Token (DLT) Standard, proposed under ERC-6960! 🎉
 written in Huff Language.
 
 DLT is a versatile and efficient token standard for managing diverse digital assets in a clear and organized manner. 📚💼🏦
 
 ## Table of Contents 📑
 
-- [Dual Layer Token (EIP6960) in Huff •   ](#dual-layer-token-eip6960-in-huff----)
+- [Dual Layer Token (ERC6960) in Huff •   ](#dual-layer-token-erc6960-in-huff----)
   - [Table of Contents 📑](#table-of-contents-)
   - [Getting Started](#getting-started)
     - [Requirements](#requirements)
