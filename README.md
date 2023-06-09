@@ -94,7 +94,7 @@ The DLT Interface consists of several key events and functions that facilitate t
 Key events include:
 
 - `Transfer`: Emitted when a token is transferred.
-- `TransferBatch`: Emitted for batch transfers.
+- `TransferBatch`: Emitted for batch transfers.(working on batch functions)
 - `Approval`: Emitted when an owner approves a spender to manage a token.
 - `ApprovalForAll`: Emitted when a spender enables or disables an operator to manage all of its assets.
 - `URI`: Emitted when the URI of a mainId is changed.
@@ -103,10 +103,8 @@ Key functions include:
 
 - `setApprovalForAll`: Approve or remove an operator for the caller.
 - `safeTransferFrom`: Moves tokens using the allowance mechanism.
-- `approve`: Sets the allowance of a spender over the caller's tokens.
 - `subBalanceOf`: Returns the amount of tokens owned by an account.
-- `balanceOfBatch`: Returns the balances of multiple accounts.
-- `allowance`: Returns the remaining number of tokens that a spender can spend on behalf of an owner.
+- `balanceOfBatch`: Returns the balances of multiple accounts.(working on batch functions)
 - `isApprovedForAll`: Checks if an operator is allowed to manage all of the assets of an owner.
 
 ## Key Functions 📚
@@ -115,10 +113,8 @@ The DLT interface provides a set of functions to interact with and manage the to
 
 - `setApprovalForAll(operator, approved)`: Allows the approval or removal of `operator` as an operator for the caller. Operators can call `transferFrom` or `safeTransferFrom` for any token owned by the caller.
 - `safeTransferFrom(sender, recipient, mainId, subId, amount, data)`: Moves `amount` tokens from `sender` to `recipient` using the allowance mechanism. `amount` is then deducted from the caller's allowance.
-- `approve(spender, mainId, subId, amount)`: Sets `amount` as the allowance of `spender` over the caller's tokens.
 - `subBalanceOf(account, mainId, subId)`: Returns the amount of tokens owned by `account
-- `balanceOfBatch(accounts, mainIds, subIds)`: Returns the balances of multiple `accounts` for each pair of `mainIds` and `subIds`.
-- `allowance(owner, spender, mainId, subId)`: Returns the remaining number of tokens that `spender` can spend on behalf of `owner` for a specific `mainId` and `subId`.
+- `balanceOfBatch(accounts, mainIds, subIds)`: Returns the balances of multiple `accounts` for each pair of `mainIds` and `subIds`.(working on batch functions)
 - `isApprovedForAll(owner, operator)`: Checks if `operator` is allowed to manage all of the assets of `owner`.
 
 ## DLT Examples 🌟
