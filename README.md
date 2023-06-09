@@ -1,6 +1,6 @@
 <img align="right" width="150" height="150" top="100" src="./assets/blueprint.png">
 
-# Dual Layer Token (EIP6960) in Huff • [![ci](https://github.com/huff-language/huff-project-template/actions/workflows/ci.yaml/badge.svg)](https://github.com/huff-language/huff-project-template/actions/workflows/ci.yaml) ![license](https://img.shields.io/github/license/huff-language/huff-project-template.svg) ![solidity](https://img.shields.io/badge/solidity-^0.8.15-lightgrey)
+# Dual Layer Token (ERC6960) in Huff • [![ci](https://github.com/huff-language/huff-project-template/actions/workflows/ci.yaml/badge.svg)](https://github.com/huff-language/huff-project-template/actions/workflows/ci.yaml) ![license](https://img.shields.io/github/license/huff-language/huff-project-template.svg) ![solidity](https://img.shields.io/badge/solidity-^0.8.15-lightgrey)
 
 Welcome to the Dual-Layer-Token (DLT) Standard, proposed under EIP-6960! 🎉
 written in Huff Language.
